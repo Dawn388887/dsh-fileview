@@ -1,0 +1,22 @@
+{
+  "name": "dsh-fileview",
+  "version": "1.0.0",
+  "description": "In-GUI file viewer/editor for remote browsers: /dsh-fileview HTTP endpoints + client overlay that intercepts workspace file links",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}

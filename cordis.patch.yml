@@ -1,0 +1,26 @@
+# dsh-fileview — remote-browser file viewer/editor.
+#
+# Host half serves /dsh-fileview/{meta,file,dir} (read + save + directory
+# browse, same-origin fenced, path-allowlisted). Client half patches the
+# `workspaces` service's openPath so file links on a non-loopback page open an
+# in-GUI overlay viewer instead of the OS default app (which host.openPath
+# would 403 anyway: it is pinned loopback-only in PRIVILEGED_METHODS).
+#
+# inject: [webServer] makes Cordis wait for the webServer service before
+# apply() runs — without it ctx.get('webServer') is undefined and the routes
+# never register (same lesson as dsh-notify).
+#
+# config.roots is the read+write path allowlist (absolute directories; subpaths
+# allowed, everything else 403). config.writeRoots optionally narrows writes.
+# Required: without at least one root the plugin registers nothing (safe no-op).
+# Example:
+#   config:
+#     roots:
+#       - 'D:\workspace'
+#       - 'C:\Users\me\projects'
+#     writeRoots:            # optional: narrow saves to a subset of roots
+#       - 'D:\workspace'
+- insert:
+    - id: fileview
+      name: dsh-fileview
+      inject: [webServer]
