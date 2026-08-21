@@ -56,6 +56,12 @@ node test/fileview-smoke.mjs
 
 34 项离线回归(mock req/res,无需服务器):meta/file/dir 端点、窗口分页、CRLF 保持、二进制嗅探、越权/遍历 403、同源守卫、编码阶梯(UTF-8 边界、GBK 拒存、UTF-16LE/BE 往返)、大文件、路由形状守卫。
 
+## 赞助
+
+如果这个插件帮你省了时间或麻烦,欢迎请我喝杯咖啡:
+
+- **PayPal**: [paypal.me/dawn388887](https://paypal.me/dawn388887)
+
 ## 许可
 
 MIT © 2026 Dawn388887

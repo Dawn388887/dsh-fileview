@@ -56,6 +56,12 @@ node test/fileview-smoke.mjs
 
 34 offline regression checks (mock req/res, no server): meta/file/dir endpoints, window pagination, CRLF preservation, binary sniffing, out-of-root/traversal 403, same-origin guard, encoding ladder (UTF-8 boundary, GBK refusal, UTF-16LE/BE round-trips), large files, router-shape guard.
 
+## Support
+
+If this plugin saves you time or a headache, a coffee is appreciated:
+
+- **PayPal**: [paypal.me/dawn388887](https://paypal.me/dawn388887)
+
 ## License
 
 MIT © 2026 Dawn388887
