@@ -1,10 +1,11 @@
 # dsh-fileview — remote-browser file viewer/editor.
 #
 # Host half serves /dsh-fileview/{meta,file,dir} (read + save + directory
-# browse, same-origin fenced, path-allowlisted). Client half patches the
-# `workspaces` service's openPath so file links on a non-loopback page open an
-# in-GUI overlay viewer instead of the OS default app (which host.openPath
-# would 403 anyway: it is pinned loopback-only in PRIVILEGED_METHODS).
+# browse, same-origin fenced, path-allowlisted). On DSH 0.1.2 the Client half
+# wraps `ctx.remote.session.openWorkspacePath` by replacing its configurable
+# getter-only descriptor. Remote pages open the path in an in-GUI overlay;
+# loopback pages retain the native OS opener. Cleanup restores the exact
+# original descriptor.
 #
 # inject: [webServer] makes Cordis wait for the webServer service before
 # apply() runs — without it ctx.get('webServer') is undefined and the routes

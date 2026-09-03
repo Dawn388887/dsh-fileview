@@ -1,6 +1,6 @@
 {
   "name": "dsh-fileview",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "In-GUI file viewer/editor for remote browsers: /dsh-fileview HTTP endpoints + client overlay that intercepts workspace file links",
   "type": "module",
   "main": "index.js",
@@ -16,7 +16,11 @@
       "patch": "./cordis.patch.yml"
     },
     "client": {
-      "platform": "web"
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-client-connection"
+      ]
     }
   }
 }

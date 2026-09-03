@@ -1,12 +1,12 @@
 // dsh-fileview client half — in-GUI file viewer/editor for remote browsers.
 //
-// On a non-loopback page (Tailscale remote, tablet, desktop-on-LAN) the
-// shipped file links cannot work: they call workspaces.openPath -> RPC
-// host.openPath, which the api layer pins to loopback (PRIVILEGED_METHODS),
-// so every click 403s invisibly. This half re-points that one method at a
-// DOM overlay served by this plugin's /dsh-fileview endpoints: full text,
-// scrollable, selectable, editable and savable, touch-friendly. Loopback
-// pages keep the native OS-open behavior untouched.
+// On a non-loopback page (VPN, LAN, tablet, or another remote browser) the
+// shipped file links cannot use the privileged Host workspace opener. DSH
+// 0.1.2 routes those links through ctx.remote.session.openWorkspacePath(), so
+// this half wraps that Remote method and opens the same path in a DOM overlay
+// served by /dsh-fileview instead: full text, scrollable, selectable, editable
+// and savable, touch-friendly. Loopback pages keep the native OS-open behavior
+// untouched.
 //
 // A slim "文件" handle on the left edge opens a directory browser over the
 // same endpoints, so the user can pull up any workspace file without
@@ -328,7 +328,7 @@ window.__ModuleLoader__.load({
       layoutViewer();
       viewer = emptyViewer();
       viewer.path = path;
-      overlay.name.textContent = path.replace(/[/\\]([^/\\]*)$/, "$1") || path;
+      overlay.name.textContent = path.replace(/^.*[/\\]/, "") || path;
       overlay.pathLine.textContent = path;
       overlay.textarea.style.display = "none";
       overlay.imgBox.style.display = "none";
@@ -568,7 +568,7 @@ window.__ModuleLoader__.load({
 
     // ── entry handle ────────────────────────────────────────────────────
     let entryBtn = null;
-    let nativeOpenPath = null; // captured native opener; loopback pages keep OS-open everywhere
+    let nativeOpenPath = null; // captured native Remote opener; loopback pages keep OS-open everywhere
     let connectionHandle = null;
 
     function isRemotePage() {
@@ -597,34 +597,48 @@ window.__ModuleLoader__.load({
       document.addEventListener("DOMContentLoaded", fn, { once: true });
     }
 
-    // ── plugin: patch workspaces.openPath for remote pages ─────────────
-    var inject = ["workspaces", "connection"];
+    // ── plugin: patch the 0.1.2 Remote workspace opener ────────────────
+    var inject = ["connection", "remote", "remote.session"];
 
     function apply(ctx) {
-      const workspaces = ctx.workspaces;
+      const remoteSession = ctx.remote.session;
       connectionHandle = ctx.connection;
 
       const cleanups = [];
       let disposed = false;
 
-      if (typeof workspaces.openPath === "function" && !workspaces.openPath.__dshFileviewNative) {
-        const nativeOpen = workspaces.openPath.bind(workspaces);
-        nativeOpenPath = nativeOpen;
-        const patchedOpen = function openPath(path) {
-          if (!isRemotePage()) return nativeOpen(path);
+      if (typeof remoteSession.openWorkspacePath === "function" && !remoteSession.openWorkspacePath.__dshFileviewNative) {
+        const nativeDescriptor = Object.getOwnPropertyDescriptor(remoteSession, "openWorkspacePath");
+        const nativeMethod = remoteSession.openWorkspacePath;
+        const nativeOpen = nativeMethod.bind(remoteSession);
+        nativeOpenPath = function (path) { return nativeOpen({ path: String(path) }); };
+        const patchedOpen = function openWorkspacePath(request, signal) {
+          if (!isRemotePage()) return nativeOpen(request, signal);
+          const path = request && typeof request.path === "string" ? request.path : "";
+          if (!path) return nativeOpen(request, signal);
           try {
-            openViewer(String(path));
+            void openViewer(path);
+            return Promise.resolve({ ok: true, value: { opened: true } });
           } catch (err) {
             console.error("[dsh-fileview] open viewer failed:", err);
+            return Promise.reject(err);
           }
-          return Promise.resolve();
         };
-        patchedOpen.__dshFileviewNative = workspaces.openPath;
-        workspaces.openPath = patchedOpen;
+        patchedOpen.__dshFileviewNative = nativeMethod;
+        // DSH 0.1.2 installs Remote methods as configurable getter-only own
+        // properties, so assignment is a no-op; replace the descriptor itself.
+        Object.defineProperty(remoteSession, "openWorkspacePath", {
+          configurable: true,
+          enumerable: nativeDescriptor ? nativeDescriptor.enumerable : true,
+          writable: true,
+          value: patchedOpen,
+        });
         cleanups.push(function () {
-          if (workspaces.openPath === patchedOpen) {
-            workspaces.openPath = patchedOpen.__dshFileviewNative;
+          if (remoteSession.openWorkspacePath === patchedOpen) {
+            if (nativeDescriptor) Object.defineProperty(remoteSession, "openWorkspacePath", nativeDescriptor);
+            else delete remoteSession.openWorkspacePath;
           }
+          nativeOpenPath = null;
         });
       }
 
